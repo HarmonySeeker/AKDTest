@@ -22,6 +22,11 @@ public class CameraManager : MonoBehaviour
         _input = context.ReadValue<Vector2>();
     }
 
+    private void Start()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+    }
+
     private void Update()
     {
         _cameraRotation.Yaw += _input.x * -mouseSensitivity.horizontal * BoolToInt(mouseSensitivity.invertHorizontal) * Time.deltaTime;
