@@ -22,7 +22,16 @@ public class PlayerController : MonoBehaviour
 
     #endregion
 
+    #region Variables: Interaction
+
+    [SerializeField] private Transform _holdArea;
+    private GameObject _heldObject;
+    private Rigidbody _heldObjectRB;
+
     [SerializeField] private float interactRange;
+    [SerializeField] private float pickUpForce = 150.0f;
+
+    #endregion
 
     private void Awake()
     {
@@ -34,12 +43,15 @@ public class PlayerController : MonoBehaviour
     {
         ApplyRotation();
         ApplyMovement();
-        PlaySounds();
+        ProcessPickUpObject();
     }
 
-    private void PlaySounds()
+    private void ProcessPickUpObject()
     {
-
+        if (_heldObject != null)
+        {
+            MoveObject();
+        }
     }
 
     private void ApplyRotation()
@@ -79,9 +91,50 @@ public class PlayerController : MonoBehaviour
             if (Physics.Raycast(r, out RaycastHit hitInfo, interactRange)
                 && hitInfo.collider.gameObject.CompareTag("Interactable"))
             {
-                hitInfo.collider.gameObject.TryGetComponent(out IInteractableObject interactableObj);
-                interactableObj.InteractableAction();
+                PickUpObject(hitInfo.collider.gameObject);
             }
+        }
+        else if (context.canceled)
+        {
+            DropObject();
+        }
+    }
+
+    private void MoveObject()
+    {
+        if (Vector3.Distance(_heldObject.transform.position, _holdArea.position) > 0.1f)
+        {
+            Vector3 moveDirection = (_holdArea.position - _heldObject.transform.position);
+            _heldObjectRB.AddForce(moveDirection * pickUpForce);
+        }
+    }
+
+    private void PickUpObject(GameObject pickedObject)
+    {
+        if (pickedObject.TryGetComponent<Rigidbody>(out Rigidbody pickRB))
+        {
+            Debug.Log($"PICKING UP {pickedObject.name}");
+            _heldObjectRB = pickRB;
+            _heldObjectRB.useGravity = false;
+            _heldObjectRB.drag = 10;
+            _heldObjectRB.constraints = RigidbodyConstraints.FreezeRotation;
+
+            _heldObject = pickedObject; 
+            _heldObject.transform.SetParent(_holdArea);
+        }
+    }
+
+    private void DropObject()
+    {
+        if (_heldObject != null)
+        {
+            _heldObjectRB.useGravity = true;
+            _heldObjectRB.drag = 1;
+            _heldObjectRB.constraints = RigidbodyConstraints.None;
+            _heldObjectRB = null;
+
+            _heldObject.transform.parent = null;
+            _heldObject = null;
         }
     }
 }
